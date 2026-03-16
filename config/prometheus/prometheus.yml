@@ -1,0 +1,73 @@
+global:
+  scrape_interval: 5s
+  evaluation_interval: 5s
+  external_labels:
+    cluster: 'observability-workshop'
+  scrape_protocols:
+    - OpenMetricsText1.0.0
+    - OpenMetricsText0.0.1
+    - PrometheusText0.0.4
+
+scrape_configs:
+  # Prometheus itself
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+
+  # Traefik metrics
+  - job_name: 'traefik'
+    static_configs:
+      - targets: ['traefik:8082']
+
+  # Service A (Gateway)
+  - job_name: 'service-a-gateway'
+    static_configs:
+      - targets: ['service-a-gateway:9090']
+        labels:
+          service: 'service-a-gateway'
+
+  # Service B (Orders)
+  - job_name: 'service-b-orders'
+    static_configs:
+      - targets: ['service-b-orders:9090']
+        labels:
+          service: 'service-b-orders'
+
+  # Service C (Products)
+  - job_name: 'service-c-products'
+    static_configs:
+      - targets: ['service-c-products:9090']
+        labels:
+          service: 'service-c-products'
+
+  # Service D (Analytics)
+  - job_name: 'service-d-analytics'
+    static_configs:
+      - targets: ['service-d-analytics:9090']
+        labels:
+          service: 'service-d-analytics'
+
+  # Postgres exporter
+  - job_name: 'postgres'
+    static_configs:
+      - targets: ['postgres-exporter:9187']
+
+  # Redis exporter
+  - job_name: 'redis'
+    static_configs:
+      - targets: ['redis-exporter:9121']
+
+  # Tempo metrics
+  - job_name: 'tempo'
+    static_configs:
+      - targets: ['tempo:3200']
+
+  # Loki metrics
+  - job_name: 'loki'
+    static_configs:
+      - targets: ['loki:3100']
+
+  # Pyroscope metrics
+  - job_name: 'pyroscope'
+    static_configs:
+      - targets: ['pyroscope:4040']

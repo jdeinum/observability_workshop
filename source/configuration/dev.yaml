@@ -1,0 +1,26 @@
+# Development environment overrides
+
+# Observability - local endpoints
+otlp_endpoint: "http://localhost:4317"
+
+# External dependencies - localhost
+redis_url: "redis://localhost:6379"
+
+# Service URLs - localhost with specific ports
+services:
+  service_a_url: "http://localhost:9091"
+  service_b_url: "http://localhost:9092"
+  service_c_url: "http://localhost:9093"
+  service_d_url: "http://localhost:9094"
+
+# INTENTIONAL BUGS FOR WORKSHOP:
+
+# Bug #1: Cache TTL too short (Service A)
+cache:
+  ttl_secs: 15  # BUG: 15 seconds causes cache miss storm!
+
+# Bug #3: Pool size too small (Service C)
+database:
+  pool_max_connections: 5  # BUG: Only 5 connections causes exhaustion!
+  pool_min_connections: 2
+  pool_acquire_timeout_secs: 3

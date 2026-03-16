@@ -1,0 +1,37 @@
+# Base configuration - shared across all environments
+
+application:
+  host: "0.0.0.0"
+  port: 3000
+  metrics_port: 9090
+  log_level: "info"
+  service_name: "default-service"
+
+# Observability
+otlp_endpoint: "http://localhost:4317"
+pyroscope_url: "http://localhost:4040"
+
+# External dependencies
+redis_url: "redis://localhost:6379"
+
+# Database connection pool settings
+database:
+  host: "localhost"
+  port: 5432
+  username: "postgres"
+  password: "password"
+  name: "default_db"
+  pool_max_connections: 10
+  pool_min_connections: 2
+  pool_acquire_timeout_secs: 3
+
+# Cache settings
+cache:
+  ttl_secs: 300  # 5 minutes default
+
+# Service discovery (localhost defaults)
+services:
+  service_a_url: "http://localhost:9091"
+  service_b_url: "http://localhost:9092"
+  service_c_url: "http://localhost:9093"
+  service_d_url: "http://localhost:9094"

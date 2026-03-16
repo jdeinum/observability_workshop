@@ -1,0 +1,52 @@
+# Docker image settings
+image_registry := env_var_or_default("IMAGE_REGISTRY", "ghcr.io/jdeinum")
+image_tag := env_var_or_default("IMAGE_TAG", "latest")
+
+# Default recipe - show help
+default:
+    @just --list
+
+# Start development environment with process-compose
+dev:
+    @if ! command -v process-compose &> /dev/null; then \
+        echo "process-compose not installed"; \
+        echo "Install: https://github.com/F1bonacc1/process-compose#installation"; \
+        exit 1; \
+    fi
+    process-compose up
+
+# Build Docker images for all services
+build:
+    @echo "Building Docker images..."
+    @echo "Registry: {{image_registry}}"
+    @echo "Tag: {{image_tag}}"
+    docker build -t {{image_registry}}/service-a-gateway:{{image_tag}} -f services/service-a/Dockerfile .
+    docker build -t {{image_registry}}/service-b-orders:{{image_tag}} -f services/service-b/Dockerfile .
+    docker build -t {{image_registry}}/service-c-products:{{image_tag}} -f services/service-c/Dockerfile .
+    docker build -t {{image_registry}}/service-d-analytics:{{image_tag}} -f services/service-d/Dockerfile .
+    @echo "All images built successfully!"
+
+# Build and push Docker images to GHCR (uses doppler for GITHUB_TOKEN)
+publish:
+    @echo "Getting credentials from doppler..."
+    @if ! command -v doppler &> /dev/null; then \
+        echo "doppler not installed"; \
+        echo "Install: https://docs.doppler.com/docs/install-cli"; \
+        exit 1; \
+    fi
+    @echo "Building and pushing Docker images..."
+    @echo "Registry: {{image_registry}}"
+    @echo "Tag: {{image_tag}}"
+    docker build -t {{image_registry}}/service-a-gateway:{{image_tag}} -f services/service-a/Dockerfile .
+    docker build -t {{image_registry}}/service-b-orders:{{image_tag}} -f services/service-b/Dockerfile .
+    docker build -t {{image_registry}}/service-c-products:{{image_tag}} -f services/service-c/Dockerfile .
+    docker build -t {{image_registry}}/service-d-analytics:{{image_tag}} -f services/service-d/Dockerfile .
+    @echo "Pushing images to {{image_registry}}..."
+    doppler run -c prod -p github_token -- bash -c ' \
+        echo $$GITHUB_TOKEN | docker login ghcr.io -u $$GITHUB_USERNAME --password-stdin && \
+        docker push {{image_registry}}/service-a-gateway:{{image_tag}} && \
+        docker push {{image_registry}}/service-b-orders:{{image_tag}} && \
+        docker push {{image_registry}}/service-c-products:{{image_tag}} && \
+        docker push {{image_registry}}/service-d-analytics:{{image_tag}} \
+    '
+    @echo "All images published successfully!"

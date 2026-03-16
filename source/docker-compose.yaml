@@ -1,0 +1,40 @@
+# Development infrastructure — provides Postgres and Redis for local development
+# Usage: docker compose up -d
+#
+# This runs only the infrastructure dependencies (Postgres and Redis).
+# Use process-compose to run the microservices locally (not in Docker).
+# This allows hot-reloading during development.
+#
+# For full Docker deployment with pre-built service images and the complete
+# observability stack, use the docker-compose.yaml in the root directory instead.
+
+services:
+  postgres:
+    image: postgres:18-alpine
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d postgres"]
+      interval: 2s
+      timeout: 2s
+      retries: 5
+
+  redis:
+    image: redis:8-alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 2s
+      timeout: 2s
+      retries: 5
+
+volumes:
+  postgres-data:

@@ -1,0 +1,379 @@
+{
+  "uid": "service-overview",
+  "title": "1 - Service Overview",
+  "tags": ["workshop", "services"],
+  "timezone": "browser",
+  "schemaVersion": 16,
+  "version": 0,
+  "refresh": "5s",
+  "panels": [
+    {
+      "id": 10,
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 0 },
+      "type": "text",
+      "title": "",
+      "options": {
+        "mode": "html",
+        "content": "<div style='font-family:Inter,Helvetica,Arial,sans-serif;padding:12px 16px;color:#d8d9da;display:grid;grid-template-columns:1fr 1fr;gap:24px'><div><p style='font-size:0.75rem;font-weight:600;color:#ff9830;text-transform:uppercase;letter-spacing:0.1em;margin:0 0 8px 0'>How to Trigger</p><div style='background:#1a1b1f;border:1px solid #2c3235;border-radius:6px;padding:10px 16px;font-family:monospace;font-size:0.85rem;color:#73bf69'>$ oha -z 60s -c 50 http://localhost/api/summary</div></div><div><p style='font-size:0.75rem;font-weight:600;color:#ff9830;text-transform:uppercase;letter-spacing:0.1em;margin:0 0 8px 0'>What's Happening</p><p style='font-size:0.83rem;color:#aaa;margin:0 0 10px 0'>Load is spread across all four services. Use the health stats to spot which service is degraded, then use the RED panels to understand whether it is a traffic, error, or latency problem before diving into a specific dashboard.</p><p style='font-size:0.7rem;font-weight:600;color:#8e8e8e;text-transform:uppercase;letter-spacing:0.08em;margin:0 0 4px 0'>How to identify</p><ul style='font-size:0.83rem;color:#aaa;margin:0;padding-left:16px'><li>Any stat turns red → that service has active errors</li><li>Error ratio rising on Service C → connection pool exhaustion (Dashboard 4)</li><li>p99 latency spike on Service B → N+1 queries amplifying load (Dashboard 3)</li><li>Postgres or Redis saturation → infrastructure limit reached</li></ul></div></div>"
+      }
+    },
+    {
+      "id": 11,
+      "gridPos": { "h": 5, "w": 6, "x": 0, "y": 8 },
+      "type": "stat",
+      "title": "Service A — Success Rate",
+      "description": "Success rate over the last 2 minutes",
+      "targets": [
+        {
+          "expr": "(sum(rate(traces_spanmetrics_calls_total{span_kind=\"SPAN_KIND_SERVER\",service=\"service-a-gateway\",status_code!=\"STATUS_CODE_ERROR\"}[2m])) / sum(rate(traces_spanmetrics_calls_total{span_kind=\"SPAN_KIND_SERVER\",service=\"service-a-gateway\"}[2m])) * 100) or vector(100)",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "decimals": 1,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "value": 0, "color": "red" },
+              { "value": 95, "color": "yellow" },
+              { "value": 99, "color": "green" }
+            ]
+          },
+          "mappings": []
+        }
+      },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "graphMode": "none", "colorMode": "background" }
+    },
+    {
+      "id": 12,
+      "gridPos": { "h": 5, "w": 6, "x": 6, "y": 8 },
+      "type": "stat",
+      "title": "Service B — Success Rate",
+      "description": "Success rate over the last 2 minutes",
+      "targets": [
+        {
+          "expr": "(sum(rate(traces_spanmetrics_calls_total{span_kind=\"SPAN_KIND_SERVER\",service=\"service-b-orders\",status_code!=\"STATUS_CODE_ERROR\"}[2m])) / sum(rate(traces_spanmetrics_calls_total{span_kind=\"SPAN_KIND_SERVER\",service=\"service-b-orders\"}[2m])) * 100) or vector(100)",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "decimals": 1,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "value": 0, "color": "red" },
+              { "value": 95, "color": "yellow" },
+              { "value": 99, "color": "green" }
+            ]
+          },
+          "mappings": []
+        }
+      },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "graphMode": "none", "colorMode": "background" }
+    },
+    {
+      "id": 13,
+      "gridPos": { "h": 5, "w": 6, "x": 12, "y": 8 },
+      "type": "stat",
+      "title": "Service C — Success Rate",
+      "description": "Success rate over the last 2 minutes",
+      "targets": [
+        {
+          "expr": "(sum(rate(traces_spanmetrics_calls_total{span_kind=\"SPAN_KIND_SERVER\",service=\"service-c-products\",status_code!=\"STATUS_CODE_ERROR\"}[2m])) / sum(rate(traces_spanmetrics_calls_total{span_kind=\"SPAN_KIND_SERVER\",service=\"service-c-products\"}[2m])) * 100) or vector(100)",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "decimals": 1,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "value": 0, "color": "red" },
+              { "value": 95, "color": "yellow" },
+              { "value": 99, "color": "green" }
+            ]
+          },
+          "mappings": []
+        }
+      },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "graphMode": "none", "colorMode": "background" }
+    },
+    {
+      "id": 14,
+      "gridPos": { "h": 5, "w": 6, "x": 18, "y": 8 },
+      "type": "stat",
+      "title": "Service D — Success Rate",
+      "description": "Success rate over the last 2 minutes",
+      "targets": [
+        {
+          "expr": "(sum(rate(traces_spanmetrics_calls_total{span_kind=\"SPAN_KIND_SERVER\",service=\"service-d-analytics\",status_code!=\"STATUS_CODE_ERROR\"}[2m])) / sum(rate(traces_spanmetrics_calls_total{span_kind=\"SPAN_KIND_SERVER\",service=\"service-d-analytics\"}[2m])) * 100) or vector(100)",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "decimals": 1,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "value": 0, "color": "red" },
+              { "value": 95, "color": "yellow" },
+              { "value": 99, "color": "green" }
+            ]
+          },
+          "mappings": []
+        }
+      },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "graphMode": "none", "colorMode": "background" }
+    },
+    {
+      "id": 1,
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 13 },
+      "type": "timeseries",
+      "title": "Rate — Requests/sec",
+      "targets": [
+        {
+          "expr": "sum by (service) (rate(traces_spanmetrics_calls_total{span_kind=\"SPAN_KIND_SERVER\"}[1m]))",
+          "legendFormat": "{{service}}",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": { "drawStyle": "line", "fillOpacity": 10 },
+          "unit": "reqps"
+        }
+      }
+    },
+    {
+      "id": 2,
+      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 13 },
+      "type": "timeseries",
+      "title": "Errors — Error Ratio %",
+      "description": "Percentage of requests returning an error per service. A rising ratio always means something is wrong — unlike raw error rate which can rise with traffic.",
+      "targets": [
+        {
+          "expr": "sum by (service) (rate(traces_spanmetrics_calls_total{span_kind=\"SPAN_KIND_SERVER\",status_code=\"STATUS_CODE_ERROR\"}[1m])) / sum by (service) (rate(traces_spanmetrics_calls_total{span_kind=\"SPAN_KIND_SERVER\"}[1m])) * 100",
+          "legendFormat": "{{service}}",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": { "drawStyle": "line", "fillOpacity": 10 },
+          "unit": "percent",
+          "min": 0,
+          "max": 100,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "value": 0, "color": "green" },
+              { "value": 1, "color": "yellow" },
+              { "value": 5, "color": "red" }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": 3,
+      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 13 },
+      "type": "timeseries",
+      "title": "Duration — Latency (system-wide)",
+      "description": "p50, p95, p99 aggregated across all services. Shows the spread between typical and worst-case response times.",
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.50, sum by (le) (rate(traces_spanmetrics_latency_bucket{span_kind=\"SPAN_KIND_SERVER\"}[1m])))",
+          "legendFormat": "p50",
+          "refId": "A"
+        },
+        {
+          "expr": "histogram_quantile(0.95, sum by (le) (rate(traces_spanmetrics_latency_bucket{span_kind=\"SPAN_KIND_SERVER\"}[1m])))",
+          "legendFormat": "p95",
+          "refId": "B"
+        },
+        {
+          "expr": "histogram_quantile(0.99, sum by (le) (rate(traces_spanmetrics_latency_bucket{span_kind=\"SPAN_KIND_SERVER\"}[1m])))",
+          "legendFormat": "p99",
+          "refId": "C"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": { "drawStyle": "line", "fillOpacity": 0, "lineWidth": 2 },
+          "unit": "ms"
+        },
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "p99" },
+            "properties": [{ "id": "color", "value": { "mode": "fixed", "fixedColor": "red" } }]
+          },
+          {
+            "matcher": { "id": "byName", "options": "p95" },
+            "properties": [{ "id": "color", "value": { "mode": "fixed", "fixedColor": "orange" } }]
+          },
+          {
+            "matcher": { "id": "byName", "options": "p50" },
+            "properties": [{ "id": "color", "value": { "mode": "fixed", "fixedColor": "green" } }]
+          }
+        ]
+      }
+    },
+    {
+      "id": 5,
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 21 },
+      "type": "timeseries",
+      "title": "Traefik — Front Door Request Rate",
+      "description": "Requests reaching the gateway broken down by HTTP status code. 5xx codes are user-visible errors.",
+      "targets": [
+        {
+          "expr": "sum by (code) (rate(traefik_entrypoint_requests_total{entrypoint=\"web\"}[1m]))",
+          "legendFormat": "HTTP {{code}}",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": { "drawStyle": "line", "fillOpacity": 10 },
+          "unit": "reqps"
+        },
+        "overrides": [
+          {
+            "matcher": { "id": "byRegexp", "options": "HTTP 5.*" },
+            "properties": [{ "id": "color", "value": { "mode": "fixed", "fixedColor": "red" } }]
+          },
+          {
+            "matcher": { "id": "byRegexp", "options": "HTTP 2.*" },
+            "properties": [{ "id": "color", "value": { "mode": "fixed", "fixedColor": "green" } }]
+          }
+        ]
+      }
+    },
+    {
+      "id": 6,
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 21 },
+      "type": "timeseries",
+      "title": "Traefik — Front Door Latency",
+      "description": "End-to-end latency seen by users at the gateway. Spikes indicate a downstream bug is active.",
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.50, sum by (le) (rate(traefik_entrypoint_request_duration_seconds_bucket{entrypoint=\"web\"}[1m])))",
+          "legendFormat": "p50",
+          "refId": "A"
+        },
+        {
+          "expr": "histogram_quantile(0.95, sum by (le) (rate(traefik_entrypoint_request_duration_seconds_bucket{entrypoint=\"web\"}[1m])))",
+          "legendFormat": "p95",
+          "refId": "B"
+        },
+        {
+          "expr": "histogram_quantile(0.99, sum by (le) (rate(traefik_entrypoint_request_duration_seconds_bucket{entrypoint=\"web\"}[1m])))",
+          "legendFormat": "p99",
+          "refId": "C"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": { "drawStyle": "line", "fillOpacity": 10, "lineWidth": 2 },
+          "unit": "s"
+        },
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "p99" },
+            "properties": [{ "id": "color", "value": { "mode": "fixed", "fixedColor": "red" } }]
+          },
+          {
+            "matcher": { "id": "byName", "options": "p95" },
+            "properties": [{ "id": "color", "value": { "mode": "fixed", "fixedColor": "orange" } }]
+          }
+        ]
+      }
+    },
+    {
+      "id": 16,
+      "gridPos": { "h": 6, "w": 12, "x": 0, "y": 29 },
+      "type": "timeseries",
+      "title": "Saturation — Postgres Active Connections",
+      "description": "From pg_stat_activity. Pool max for Service C is 5. When active pins at 5, new requests queue and fail.",
+      "targets": [
+        {
+          "expr": "sum(pg_stat_activity_count{state=\"active\"})",
+          "legendFormat": "Active",
+          "refId": "A"
+        },
+        {
+          "expr": "sum(pg_stat_activity_count{state=\"idle\"})",
+          "legendFormat": "Idle",
+          "refId": "B"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": { "drawStyle": "line", "fillOpacity": 20, "lineWidth": 2 },
+          "unit": "short",
+          "min": 0
+        },
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "Active" },
+            "properties": [{ "id": "color", "value": { "mode": "fixed", "fixedColor": "orange" } }]
+          },
+          {
+            "matcher": { "id": "byName", "options": "Idle" },
+            "properties": [{ "id": "color", "value": { "mode": "fixed", "fixedColor": "green" } }]
+          }
+        ]
+      }
+    },
+    {
+      "id": 17,
+      "gridPos": { "h": 6, "w": 12, "x": 12, "y": 29 },
+      "type": "timeseries",
+      "title": "Saturation — Redis Connected Clients",
+      "description": "From redis_exporter. Spikes during cache miss storms as all concurrent requests race to refresh.",
+      "targets": [
+        {
+          "expr": "redis_connected_clients",
+          "legendFormat": "Connected",
+          "refId": "A"
+        },
+        {
+          "expr": "redis_blocked_clients",
+          "legendFormat": "Blocked",
+          "refId": "B"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": { "drawStyle": "line", "fillOpacity": 10, "lineWidth": 2 },
+          "unit": "short",
+          "min": 0
+        },
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "Blocked" },
+            "properties": [{ "id": "color", "value": { "mode": "fixed", "fixedColor": "red" } }]
+          }
+        ]
+      }
+    },
+    {
+      "id": 20,
+      "gridPos": { "h": 3, "w": 24, "x": 0, "y": 35 },
+      "type": "text",
+      "title": "",
+      "options": {
+        "mode": "html",
+        "content": "<div style='font-family:Inter,Helvetica,Arial,sans-serif;padding:8px 16px;display:flex;align-items:center;justify-content:flex-end;height:100%'><a href='/d/cache-behavior' style='display:inline-block;padding:8px 24px;background:#ff9830;color:#111;border-radius:6px;font-weight:600;font-size:0.9rem;text-decoration:none'>→ Next: 2 - Cache Behavior</a></div>"
+      }
+    }
+  ],
+  "time": { "from": "now-2m", "to": "now" }
+}

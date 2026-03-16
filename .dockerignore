@@ -1,0 +1,47 @@
+# Rust build artifacts
+**/target
+**/*.rs.bk
+Cargo.lock
+
+# Git
+.git
+.gitignore
+
+# IDE
+.idea
+.vscode
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Docker
+.dockerignore
+docker-compose.yml
+Dockerfile
+**/Dockerfile
+
+# Documentation
+README.md
+*.md
+observability-workshop-full-plan.md
+
+# CI/CD
+.github
+.gitlab-ci.yml
+
+# Logs
+*.log
+
+# Data
+/data/
+*.db
+*.db-shm
+*.db-wal
+
+# Development tools
+Makefile
+justfile

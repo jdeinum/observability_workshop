@@ -1,0 +1,117 @@
+// Grafana Alloy configuration
+// Receives OTLP traces and forwards to Tempo
+// Collects Docker logs and forwards to Loki
+
+// OTLP receiver for traces
+otelcol.receiver.otlp "default" {
+  grpc {
+    endpoint = "0.0.0.0:4317"
+  }
+
+  http {
+    endpoint = "0.0.0.0:4318"
+  }
+
+  output {
+    traces  = [otelcol.exporter.otlp.tempo.input]
+  }
+}
+
+// OTLP exporter to Tempo
+otelcol.exporter.otlp "tempo" {
+  client {
+    endpoint = "tempo:4317"
+    tls {
+      insecure = true
+    }
+  }
+}
+
+// Discover running Docker containers
+discovery.docker "containers" {
+  host = "unix:///var/run/docker.sock"
+}
+
+// Filter to workshop containers only and extract service label
+discovery.relabel "docker_labels" {
+  targets = discovery.docker.containers.targets
+
+  rule {
+    source_labels = ["__meta_docker_container_label_com_docker_compose_project"]
+    regex         = "observability_workshop"
+    action        = "keep"
+  }
+
+  rule {
+    source_labels = ["__meta_docker_container_name"]
+    regex         = "/(.*)"
+    target_label  = "service_name"
+  }
+}
+
+// Docker log collection
+loki.source.docker "default" {
+  host       = "unix:///var/run/docker.sock"
+  targets    = discovery.relabel.docker_labels.output
+  forward_to = [loki.process.parse_json.receiver]
+}
+
+// Parse JSON logs from services
+loki.process "parse_json" {
+  forward_to = [loki.write.default.receiver]
+
+  // Extract basic fields via JSON path
+  stage.json {
+    expressions = {
+      level     = "level",
+      timestamp = "timestamp",
+      message   = "fields.message",
+      target    = "target",
+    }
+  }
+
+  // Extract trace_id and span_id via regex on the raw JSON line.
+  // We can't use stage.json for these because the OtelAxumLayer creates a
+  // parent span with trace_id/span_id, but #[tracing::instrument] on handlers
+  // creates a child span. The JSON "span" key refers to the immediate (child)
+  // span which lacks these fields — they live on the parent span inside the
+  // "spans" array, which stage.json can't index into.
+  stage.regex {
+    expression = "\"trace_id\":\"(?P<trace_id>[a-f0-9]+)\""
+  }
+
+  stage.regex {
+    expression = "\"span_id\":\"(?P<span_id>[a-f0-9]+)\""
+  }
+
+  stage.template {
+    source   = "level"
+    template = "{{ .level | ToLower }}"
+  }
+
+  stage.labels {
+    values = {
+      level = "",
+    }
+  }
+
+  stage.structured_metadata {
+    values = {
+      trace_id = "",
+      span_id  = "",
+      target   = "",
+    }
+  }
+
+  stage.output {
+    source = "message"
+  }
+}
+
+// Loki writer
+loki.write "default" {
+  endpoint {
+    url = "http://loki:3100/loki/api/v1/push"
+  }
+}
+

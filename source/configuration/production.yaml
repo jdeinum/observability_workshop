@@ -1,0 +1,23 @@
+# Production environment overrides
+
+# Observability - point to Alloy container
+otlp_endpoint: "http://alloy:4317"
+
+# External dependencies - Docker service names
+redis_url: "redis://redis:6379"
+
+# Service discovery - Docker service names
+services:
+  service_a_url: "http://service-a:3000"
+  service_b_url: "http://service-b:3000"
+  service_c_url: "http://service-c:3000"
+  service_d_url: "http://service-d:3000"
+
+# Production-ready settings (bugs fixed)
+cache:
+  ttl_secs: 300  # 5 minutes - reasonable for production
+
+database:
+  pool_max_connections: 20  # Production-ready pool size
+  pool_min_connections: 5
+  pool_acquire_timeout_secs: 5

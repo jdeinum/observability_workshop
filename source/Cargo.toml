@@ -1,0 +1,68 @@
+[workspace]
+members = [
+    "services/service-a",
+    "services/service-b",
+    "services/service-c",
+    "services/service-d",
+]
+resolver = "2"
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+
+[workspace.dependencies]
+# Web framework
+axum = { version = "0.8", features = ["macros"] }
+tokio = { version = "1", features = ["full"] }
+tower = "0.5"
+tower-http = { version = "0.6", features = ["cors"] }
+
+# Serialization
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+# Tracing + OpenTelemetry
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
+tracing-opentelemetry = "0.32"
+opentelemetry = { version = "0.31", features = ["trace"] }
+opentelemetry_sdk = { version = "0.31", features = ["rt-tokio"] }
+axum-tracing-opentelemetry = "0.33"
+init-tracing-opentelemetry = { version = "0.36", features = [
+    "tracing_subscriber_ext",
+] }
+
+# Metrics
+prometheus-client = "0.22"
+
+# HTTP client
+reqwest = { version = "0.13", features = ["json"] }
+reqwest-middleware = "0.5"
+reqwest-tracing = { version = "0.7", features = ["opentelemetry_0_31"] }
+
+# Database - Services will enable features as needed
+sqlx = { version = "0.8" }
+
+# Caching
+fred = { version = "9" }
+
+# Utilities
+uuid = { version = "1", features = ["v4", "serde"] }
+anyhow = "1"
+thiserror = "1"
+chrono = { version = "0.4", features = ["serde"] }
+
+# Config
+config = "0.14"
+
+# Decimal numbers for currency
+rust_decimal = "1"
+
+# Profiling
+pyroscope = "0.5"
+pyroscope_pprofrs = "0.2"
+
+
+[profile.release]
+debug = 1

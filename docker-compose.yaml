@@ -1,0 +1,336 @@
+services:
+  service-a:
+    image: ${IMAGE_REGISTRY:-ghcr.io/jdeinum}/service-a-gateway:${IMAGE_TAG:-latest}
+    container_name: service-a-gateway
+    ports:
+      - "9091:3000"
+      - "19091:9090"
+    environment:
+      - RUN_MODE=docker
+      - APP__APPLICATION__PORT=3000
+      - APP__APPLICATION__METRICS_PORT=9090
+      - APP__OTLP_ENDPOINT=http://alloy:4318
+      - OTEL_SERVICE_NAME=service-a-gateway
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://alloy:4318
+      - OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf
+      - APP__REDIS_URL=redis://redis:6379
+      - APP__CACHE__TTL_SECS=15
+      - APP__PYROSCOPE_URL=http://pyroscope:4040
+      - APP__SERVICES__SERVICE_B_URL=http://service-b-orders:3000
+      - APP__SERVICES__SERVICE_D_URL=http://service-d-analytics:3000
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.service-a.rule=PathPrefix(`/`)"
+      - "traefik.http.routers.service-a.entrypoints=web"
+      - "traefik.http.services.service-a.loadbalancer.server.port=3000"
+    depends_on:
+      - redis
+      - alloy
+      - service-b
+      - service-d
+    networks:
+      - workshop
+
+  service-b:
+    image: ${IMAGE_REGISTRY:-ghcr.io/jdeinum}/service-b-orders:${IMAGE_TAG:-latest}
+    container_name: service-b-orders
+    ports:
+      - "19092:9090"
+    environment:
+      - RUN_MODE=docker
+      - APP__APPLICATION__PORT=3000
+      - APP__APPLICATION__METRICS_PORT=9090
+      - APP__OTLP_ENDPOINT=http://alloy:4318
+      - OTEL_SERVICE_NAME=service-b-orders
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://alloy:4318
+      - OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf
+      - APP__REDIS_URL=redis://redis:6379
+      - APP__DATABASE__HOST=postgres
+      - APP__DATABASE__POOL_MAX_CONNECTIONS=2
+      - APP__DATABASE__POOL_ACQUIRE_TIMEOUT_SECS=1
+      - APP__PYROSCOPE_URL=http://pyroscope:4040
+      - APP__SERVICES__SERVICE_C_URL=http://service-c-products:3000
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+      alloy:
+        condition: service_started
+      service-c:
+        condition: service_started
+    networks:
+      - workshop
+
+  service-c:
+    image: ${IMAGE_REGISTRY:-ghcr.io/jdeinum}/service-c-products:${IMAGE_TAG:-latest}
+    container_name: service-c-products
+    ports:
+      - "19093:9090"
+    environment:
+      - RUN_MODE=docker
+      - APP__APPLICATION__PORT=3000
+      - APP__APPLICATION__METRICS_PORT=9090
+      - APP__OTLP_ENDPOINT=http://alloy:4318
+      - OTEL_SERVICE_NAME=service-c-products
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://alloy:4318
+      - OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf
+      - APP__PYROSCOPE_URL=http://pyroscope:4040
+      - APP__DATABASE__HOST=postgres
+      - APP__DATABASE__POOL_MAX_CONNECTIONS=5
+      - APP__DATABASE__POOL_ACQUIRE_TIMEOUT_SECS=1
+    depends_on:
+      postgres:
+        condition: service_healthy
+      alloy:
+        condition: service_started
+    networks:
+      - workshop
+
+  service-d:
+    image: ${IMAGE_REGISTRY:-ghcr.io/jdeinum}/service-d-analytics:${IMAGE_TAG:-latest}
+    container_name: service-d-analytics
+    ports:
+      - "19094:9090"
+    environment:
+      - RUN_MODE=docker
+      - APP__APPLICATION__PORT=3000
+      - APP__APPLICATION__METRICS_PORT=9090
+      - APP__OTLP_ENDPOINT=http://alloy:4318
+      - OTEL_SERVICE_NAME=service-d-analytics
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://alloy:4318
+      - OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf
+      - APP__DATABASE__HOST=postgres
+      - APP__DATABASE__POOL_MAX_CONNECTIONS=2
+      - APP__DATABASE__POOL_ACQUIRE_TIMEOUT_SECS=1
+      - APP__PYROSCOPE_URL=http://pyroscope:4040
+      - APP__SERVICES__SERVICE_C_URL=http://service-c-products:3000
+    depends_on:
+      postgres:
+        condition: service_healthy
+      alloy:
+        condition: service_started
+      service-c:
+        condition: service_started
+    networks:
+      - workshop
+
+  # ==== Infrastructure ====
+
+  postgres:
+    image: postgres:18-alpine
+    container_name: postgres
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=password
+      - POSTGRES_DB=postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./config/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - workshop
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:8-alpine
+    container_name: redis
+    ports:
+      - "6379:6379"
+    networks:
+      - workshop
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  traefik:
+    image: traefik:v3.6
+    container_name: traefik
+    command:
+      - "--api.insecure=true"
+      - "--api.dashboard=true"
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--entrypoints.web.address=:80"
+      - "--metrics.prometheus=true"
+      - "--metrics.prometheus.entrypoint=metrics"
+      - "--metrics.prometheus.addEntryPointsLabels=true"
+      - "--metrics.prometheus.addRoutersLabels=true"
+      - "--metrics.prometheus.addServicesLabels=true"
+      - "--entrypoints.metrics.address=:8082"
+      - "--tracing.otlp=true"
+      - "--tracing.otlp.grpc.endpoint=alloy:4317"
+      - "--tracing.otlp.grpc.insecure=true"
+      - "--tracing.serviceName=traefik"
+      - "--accesslog=true"
+      - "--accesslog.format=json"
+    ports:
+      - "80:80"
+      - "8080:8080"
+      - "8082:8082"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - workshop
+    depends_on:
+      - service-a
+
+  postgres-exporter:
+    image: quay.io/prometheuscommunity/postgres-exporter:latest
+    container_name: postgres-exporter
+    environment:
+      - DATA_SOURCE_NAME=postgresql://postgres:password@postgres:5432/postgres?sslmode=disable
+    volumes:
+      - ./config/postgres/postgres_exporter.yml:/etc/postgres_exporter.yml
+    command:
+      - --config.file=/etc/postgres_exporter.yml
+    networks:
+      - workshop
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  redis-exporter:
+    image: oliver006/redis_exporter:latest
+    container_name: redis-exporter
+    environment:
+      - REDIS_ADDR=redis://redis:6379
+    networks:
+      - workshop
+    depends_on:
+      redis:
+        condition: service_healthy
+
+  # ==== Observability Stack ====
+
+  alloy:
+    image: grafana/alloy:latest
+    container_name: alloy
+    ports:
+      - "4317:4317" # OTLP gRPC
+      - "4318:4318" # OTLP HTTP
+      - "12345:12345" # Alloy UI
+    volumes:
+      - ./config/alloy:/etc/alloy
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    command:
+      - run
+      - /etc/alloy/config.alloy
+      - --server.http.listen-addr=0.0.0.0:12345
+    networks:
+      - workshop
+    depends_on:
+      tempo:
+        condition: service_healthy
+      loki:
+        condition: service_started
+
+  tempo:
+    image: grafana/tempo:2.6.1
+    container_name: tempo
+    command: ["-config.file=/etc/tempo.yaml"]
+    volumes:
+      - ./config/tempo/tempo-config.yaml:/etc/tempo.yaml
+    tmpfs:
+      - /tmp/tempo
+    ports:
+      - "3200:3200" # tempo
+      - "4317" # otlp grpc
+      - "4318" # otlp http
+    networks:
+      - workshop
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3200/ready"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  loki:
+    image: grafana/loki:latest
+    container_name: loki
+    command: ["-config.file=/etc/loki/local-config.yaml"]
+    volumes:
+      - ./config/loki/loki-config.yaml:/etc/loki/local-config.yaml
+      - loki-data:/loki
+    ports:
+      - "3100:3100"
+    networks:
+      - workshop
+
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+      - "--web.console.libraries=/etc/prometheus/console_libraries"
+      - "--web.console.templates=/etc/prometheus/consoles"
+      - "--web.enable-lifecycle"
+      - "--web.enable-remote-write-receiver"
+      - "--enable-feature=exemplar-storage"
+    volumes:
+      - ./config/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus-data:/prometheus
+    ports:
+      - "9090:9090"
+    networks:
+      - workshop
+
+  pyroscope:
+    image: grafana/pyroscope:latest
+    container_name: pyroscope
+    ports:
+      - "4040:4040"
+    networks:
+      - workshop
+    volumes:
+      - pyroscope-data:/var/lib/pyroscope
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    environment:
+      - GF_AUTH_ANONYMOUS_ENABLED=true
+      - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
+      - GF_AUTH_DISABLE_LOGIN_FORM=true
+      - GF_SECURITY_ADMIN_PASSWORD=workshop
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH=/var/lib/grafana/dashboards/workshop-overview.json
+      - GF_PANELS_DISABLE_SANITIZE_HTML=true
+      - GF_INSTALL_PLUGINS=grafana-pyroscope-app
+    volumes:
+      - ./config/grafana/datasources.yaml:/etc/grafana/provisioning/datasources/datasources.yaml
+      - ./config/grafana/provisioning/dashboards:/etc/grafana/provisioning/dashboards
+      - ./config/grafana/dashboards:/var/lib/grafana/dashboards
+      - grafana-data:/var/lib/grafana
+    ports:
+      - "4000:3000"
+    networks:
+      - workshop
+    depends_on:
+      prometheus:
+        condition: service_started
+      loki:
+        condition: service_started
+      tempo:
+        condition: service_started
+      pyroscope:
+        condition: service_started
+
+volumes:
+  postgres-data:
+  loki-data:
+  prometheus-data:
+  pyroscope-data:
+  grafana-data:
+
+networks:
+  workshop:
+    driver: bridge

@@ -1,0 +1,9 @@
+# Service C (Products) specific configuration
+
+application:
+  service_name: "service-c-products"
+  port: 9093
+  metrics_port: 19093
+
+database:
+  name: "products_db"

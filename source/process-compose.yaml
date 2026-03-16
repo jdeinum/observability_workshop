@@ -1,0 +1,181 @@
+# Process Compose configuration - orchestrates infrastructure + microservices
+# Install: https://github.com/F1bonacc1/process-compose
+# Usage: process-compose up
+#
+# This starts:
+#   - Infrastructure (Postgres, Redis) via docker compose
+#   - All 4 microservices via cargo run
+#
+# Prerequisites:
+#   - Docker running
+#   - Databases created: just setup-dbs
+#   - Migrations run: just migrate-all
+
+version: "0.5"
+
+environment:
+  - "RUN_MODE=dev"
+  - "RUST_LOG=info"
+  - "RUST_BACKTRACE=1"
+
+processes:
+  # Build - compile all services first
+  build:
+    command: "cargo build --workspace"
+    working_dir: "."
+    availability:
+      restart: "no"
+
+  # Infrastructure - starts docker compose
+  infrastructure:
+    command: "docker compose up"
+    working_dir: "."
+    is_daemon: true
+    readiness_probe:
+      exec:
+        command: "docker compose exec -T postgres pg_isready -U postgres -d postgres && docker compose exec -T redis redis-cli ping"
+      initial_delay_seconds: 3
+      period_seconds: 2
+      timeout_seconds: 3
+      success_threshold: 2
+    shutdown:
+      command: "docker compose down"
+      timeout_seconds: 10
+
+  # Service C - Products (depends on build and infrastructure)
+  service-c:
+    command: "cargo run --bin service-c-products"
+    working_dir: "."
+    environment:
+      - "APP__APPLICATION__PORT=9093"
+      - "APP__APPLICATION__METRICS_PORT=19093"
+      - "APP__OTLP_ENDPOINT=http://localhost:4317"
+      - "APP__DATABASE__HOST=localhost"
+      - "APP__DATABASE__PORT=5432"
+      - "APP__DATABASE__USERNAME=postgres"
+      - "APP__DATABASE__PASSWORD=password"
+      - "APP__DATABASE__NAME=products_db"
+      - "APP__REDIS_URL=redis://localhost:6379"
+    depends_on:
+      build:
+        condition: process_completed_successfully
+      infrastructure:
+        condition: process_healthy
+    availability:
+      restart: "on_failure"
+      max_restarts: 3
+    readiness_probe:
+      http_get:
+        host: localhost
+        port: 9093
+        path: /health
+      initial_delay_seconds: 3
+      period_seconds: 5
+      timeout_seconds: 2
+
+  # Service B - Orders (depends on build and Service C)
+  service-b:
+    command: "cargo run --bin service-b-orders"
+    working_dir: "."
+    environment:
+      - "APP__APPLICATION__PORT=9092"
+      - "APP__APPLICATION__METRICS_PORT=19092"
+      - "APP__OTLP_ENDPOINT=http://localhost:4317"
+      - "APP__DATABASE__HOST=localhost"
+      - "APP__DATABASE__PORT=5432"
+      - "APP__DATABASE__USERNAME=postgres"
+      - "APP__DATABASE__PASSWORD=password"
+      - "APP__DATABASE__NAME=orders_db"
+      - "APP__REDIS_URL=redis://localhost:6379"
+      - "APP__SERVICES__SERVICE_C_URL=http://localhost:9093"
+    depends_on:
+      build:
+        condition: process_completed_successfully
+      infrastructure:
+        condition: process_healthy
+      service-c:
+        condition: process_healthy
+    availability:
+      restart: "on_failure"
+      max_restarts: 3
+    readiness_probe:
+      http_get:
+        host: localhost
+        port: 9092
+        path: /health
+      initial_delay_seconds: 3
+      period_seconds: 5
+      timeout_seconds: 2
+
+  # Service D - Analytics (depends on build and Service C)
+  service-d:
+    command: "cargo run --bin service-d-analytics"
+    working_dir: "."
+    environment:
+      - "APP__APPLICATION__PORT=9094"
+      - "APP__APPLICATION__METRICS_PORT=19094"
+      - "APP__OTLP_ENDPOINT=http://localhost:4317"
+      - "APP__DATABASE__HOST=localhost"
+      - "APP__DATABASE__PORT=5432"
+      - "APP__DATABASE__USERNAME=postgres"
+      - "APP__DATABASE__PASSWORD=password"
+      - "APP__DATABASE__NAME=analytics_db"
+      - "APP__SERVICES__SERVICE_C_URL=http://localhost:9093"
+    depends_on:
+      build:
+        condition: process_completed_successfully
+      infrastructure:
+        condition: process_healthy
+      service-c:
+        condition: process_healthy
+    availability:
+      restart: "on_failure"
+      max_restarts: 3
+    readiness_probe:
+      http_get:
+        host: localhost
+        port: 9094
+        path: /health
+      initial_delay_seconds: 3
+      period_seconds: 5
+      timeout_seconds: 2
+
+  # Service A - Gateway (depends on build, B and D)
+  service-a:
+    command: "cargo run --bin service-a-gateway"
+    working_dir: "."
+    environment:
+      - "APP__APPLICATION__PORT=9091"
+      - "APP__APPLICATION__METRICS_PORT=19091"
+      - "APP__OTLP_ENDPOINT=http://localhost:4317"
+      - "APP__REDIS_URL=redis://localhost:6379"
+      - "APP__CACHE__TTL_SECS=30"
+      - "APP__SERVICES__SERVICE_B_URL=http://localhost:9092"
+      - "APP__SERVICES__SERVICE_D_URL=http://localhost:9094"
+    depends_on:
+      build:
+        condition: process_completed_successfully
+      infrastructure:
+        condition: process_healthy
+      service-b:
+        condition: process_healthy
+      service-d:
+        condition: process_healthy
+    availability:
+      restart: "on_failure"
+      max_restarts: 3
+    readiness_probe:
+      http_get:
+        host: localhost
+        port: 9091
+        path: /health
+      initial_delay_seconds: 3
+      period_seconds: 5
+      timeout_seconds: 2
+
+log_level: info
+log_configuration:
+  rotation:
+    max_size_mb: 10
+    max_age_days: 7
+    max_backups: 3

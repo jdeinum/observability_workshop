@@ -1,0 +1,9 @@
+# Service B (Orders) specific configuration
+
+application:
+  service_name: "service-b-orders"
+  port: 9092
+  metrics_port: 19092
+
+database:
+  name: "orders_db"

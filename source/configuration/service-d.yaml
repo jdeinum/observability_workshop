@@ -1,0 +1,9 @@
+# Service D (Analytics) specific configuration
+
+application:
+  service_name: "service-d-analytics"
+  port: 9094
+  metrics_port: 19094
+
+database:
+  name: "analytics_db"

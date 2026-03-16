@@ -1,0 +1,8 @@
+# Service A (Gateway) specific configuration
+
+application:
+  service_name: "service-a-gateway"
+  port: 9091
+  metrics_port: 19091
+
+# Service A doesn't use a database, only Redis

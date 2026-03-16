@@ -1,0 +1,52 @@
+[package]
+name = "service-d-analytics"
+version.workspace = true
+edition.workspace = true
+
+[[bin]]
+name = "service-d-analytics"
+path = "src/main.rs"
+
+[dependencies]
+# Web framework
+axum = { workspace = true }
+tokio = { workspace = true }
+tower = { workspace = true }
+tower-http = { workspace = true }
+
+# Serialization
+serde = { workspace = true }
+serde_json = { workspace = true }
+
+# Tracing
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+tracing-opentelemetry = { workspace = true }
+opentelemetry = { workspace = true }
+opentelemetry_sdk = { workspace = true }
+axum-tracing-opentelemetry = { workspace = true }
+init-tracing-opentelemetry = { workspace = true }
+
+# Metrics
+prometheus-client = { workspace = true }
+
+# HTTP client for calling Service C
+reqwest = { workspace = true }
+reqwest-middleware = { workspace = true }
+reqwest-tracing = { workspace = true }
+
+# Database - enable postgres features
+sqlx = { workspace = true, features = ["runtime-tokio", "postgres", "uuid", "chrono", "migrate"] }
+rust_decimal = { workspace = true }
+
+# Profiling
+pyroscope = { workspace = true }
+pyroscope_pprofrs = { workspace = true }
+
+# Utilities
+uuid = { workspace = true }
+anyhow = { workspace = true }
+thiserror = { workspace = true }
+config = { workspace = true }
+regex = "1"
+chrono = { workspace = true }
