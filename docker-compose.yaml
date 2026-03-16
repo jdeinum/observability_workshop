@@ -104,13 +104,10 @@ services:
       - APP__DATABASE__POOL_MAX_CONNECTIONS=2
       - APP__DATABASE__POOL_ACQUIRE_TIMEOUT_SECS=1
       - APP__PYROSCOPE_URL=http://pyroscope:4040
-      - APP__SERVICES__SERVICE_C_URL=http://service-c-products:3000
     depends_on:
       postgres:
         condition: service_healthy
       alloy:
-        condition: service_started
-      service-c:
         condition: service_started
     networks:
       - workshop
