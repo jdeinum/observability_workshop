@@ -43,7 +43,7 @@ publish:
     docker build -t {{image_registry}}/service-d-analytics:{{image_tag}} -f services/service-d/Dockerfile .
     @echo "Pushing images to {{image_registry}}..."
     doppler run -c prod -p github_token -- bash -c ' \
-        echo $$GITHUB_TOKEN | docker login ghcr.io -u $$GITHUB_USERNAME --password-stdin && \
+        echo $$GITHUB_TOKEN | docker login ghcr.io -u jdeinum --password-stdin && \
         docker push {{image_registry}}/service-a-gateway:{{image_tag}} && \
         docker push {{image_registry}}/service-b-orders:{{image_tag}} && \
         docker push {{image_registry}}/service-c-products:{{image_tag}} && \
